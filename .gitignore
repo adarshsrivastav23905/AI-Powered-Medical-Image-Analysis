@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+data/raw/
+data/processed/
+models/*.keras
+outputs/*.csv
+outputs/*.png
+outputs/*.json
+outputs/*.txt
+!outputs/.gitkeep
+.DS_Store
+Thumbs.db
