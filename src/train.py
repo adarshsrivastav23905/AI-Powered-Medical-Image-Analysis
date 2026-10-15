@@ -28,7 +28,6 @@ def main():
         tf.keras.callbacks.CSVLogger(output_dir / "training_log.csv"),
     ]
     history = model.fit(train_ds, validation_data=val_ds, epochs=args.epochs, callbacks=callbacks)
-    model.save(args.output)
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     for metric, axis in zip(("accuracy", "loss"), axes):
         axis.plot(history.history[metric], label=f"train {metric}")

@@ -1,72 +1,202 @@
 # AI-Powered Medical Image Analysis
 
-An educational computer vision project that classifies chest X-ray images into the dataset labels **NORMAL** and **PNEUMONIA**. It uses transfer learning with MobileNetV2, a public dataset, and a held-out test evaluation.
+> An educational chest X-ray image-classification project that uses TensorFlow and MobileNetV2 transfer learning to distinguish the dataset labels `NORMAL` and `PNEUMONIA`.
 
-> **Research/education only.** This software is not a medical device and must not be used to diagnose, triage, treat, or make decisions about a person. Model scores are not calibrated clinical probabilities. Use only with appropriate public or consented data, and follow the dataset's terms.
+> **Research and education only.** This project is not a medical device. Its outputs must not be used to diagnose, triage, treat, or make decisions about a person. Model scores are not calibrated clinical probabilities.
 
-## A. What the project demonstrates
+---
 
-### In simple terms
+## Author
 
-Hospitals and diagnostic services handle many images. A computer vision model can learn visual patterns from labeled examples and return a label for review. A well-designed system can help researchers study image triage and workflow support, while a qualified clinician remains responsible for interpretation.
+**Adarsh Srivastav**
 
-### Technical view
+---
 
-This is supervised binary image classification. The pipeline reads labeled image folders, resizes RGB images to 224×224, applies training-only augmentation, and passes them through an ImageNet-pretrained MobileNetV2 feature extractor and a sigmoid classification head. It reports accuracy, ROC AUC, sensitivity, specificity, and a confusion matrix on the supplied test split.
+## Project Overview
 
-Typical workflow: data provenance and split review → decoding/resizing → augmentation → feature extraction → training → held-out evaluation → single-image inference → plots and documented limitations. Real clinical systems also require external validation, calibration, subgroup and site-shift analysis, privacy/security controls, human factors work, regulatory review, and prospective evaluation; this repository does not provide those.
+This project demonstrates an end-to-end supervised image-classification workflow using labeled chest X-ray images. It loads the dataset's existing training, validation, and test folders, resizes images to 224×224 RGB, applies training-time augmentation, and fine-tunes a binary classification head on a frozen ImageNet-pretrained MobileNetV2 feature extractor.
 
-## B. Stack options
+The command-line workflow supports model training, held-out test evaluation, and single-image inference. It saves training logs, plots, metrics, and a model checkpoint locally. The repository does not include the X-ray dataset or a trained model; users must obtain data under its applicable terms and train the model themselves.
 
-| Option | Tools and model | Data | Difficulty / compute | Expected output |
-|---|---|---|---|---|
-| A: easiest | Python, Pillow, scikit-learn, small HOG + SVM baseline | Small curated public image set | Low; CPU | Baseline metrics and error analysis |
-| B: selected | Python, TensorFlow/Keras, NumPy, Matplotlib, scikit-learn; MobileNetV2 transfer learning | Public chest X-ray folders | Medium; CPU works, GPU shortens training | Reproducible classifier, metrics, confusion matrix, sample predictions |
-| C: advanced | PyTorch, MONAI, DICOM tooling, segmentation/detection model, experiment tracking | Curated multi-site DICOM or research dataset | High; GPU and medical-imaging expertise recommended | Segmentation/detection study with richer validation |
+> This is a classroom software demonstration—not a simulation of clinical practice, a substitute for a clinician, or evidence of real-world diagnostic performance.
 
-Option B is a practical student portfolio project: it runs without hospital access, teaches the end-to-end workflow, and uses a lightweight pretrained network. A GPU is optional. Native Windows TensorFlow GPU support differs from Linux/WSL; see installation notes below.
+---
 
-## C–D. Selected approach and architecture
+## Objectives
+
+- Demonstrate a reproducible image-classification pipeline.
+- Keep the dataset's train, validation, and test partitions separate.
+- Apply image augmentation during training, not evaluation or inference.
+- Use transfer learning to build a lightweight binary image classifier.
+- Select a checkpoint using validation AUC and evaluate on a held-out test split.
+- Report sensitivity, specificity, accuracy, ROC AUC, and a confusion matrix.
+- Provide a simple command-line workflow for training, evaluation, and image inference.
+- Document data provenance, limitations, and responsible interpretation.
+
+---
+
+## Key Features
+
+- Directory-based dataset loading with stable class order: `NORMAL` (0), `PNEUMONIA` (1)
+- RGB image resizing to 224×224 and batched, prefetched input
+- Training augmentation with random rotation and zoom
+- Frozen ImageNet-pretrained MobileNetV2 feature extractor
+- Global average pooling, dropout, and sigmoid classification output
+- Validation-AUC checkpointing and early stopping
+- Held-out test metrics, classification report, confusion matrix, and example predictions
+- Single-image prediction with an explicit educational-use notice
+- Generated model and result artifacts are excluded from Git by `.gitignore`
+
+---
+
+## System Architecture
 
 ```text
-Public labeled X-ray folders
-       ↓
-Dataset/split checks and image decoding
-       ↓
-Resize to 224×224 RGB → training augmentation
-       ↓
+Dataset folders
+  train / val / test
+  NORMAL / PNEUMONIA
+          │
+          ▼
+Decode and resize to 224×224 RGB
+          │
+          ├── Training split only: random rotation and zoom
+          ▼
 MobileNetV2 ImageNet feature extractor (frozen)
-       ↓
-Pooling → dropout → sigmoid output
-       ↓
-Train on train / choose checkpoint on val / evaluate once on test
-       ↓
-NORMAL or PNEUMONIA dataset-label score + metrics/plots
+          │
+          ▼
+Global average pooling → dropout → sigmoid score
+          │
+          ├── Train on train / select checkpoint on val
+          ├── Evaluate once on held-out test
+          └── Predict one image
 ```
 
-`src/data.py` handles folder loading and stable class mapping. `src/model.py` builds the network. `src/train.py` trains and saves the best validation-AUC checkpoint. `src/evaluate.py` evaluates the held-out test split. `src/predict.py` runs one image. The sigmoid score is a model score, not a calibrated probability or diagnosis.
+### Main Modules
 
-## E. Repository structure
+| Module | Responsibility |
+|---|---|
+| `src/data.py` | Load a dataset split, preserve label order, resize and prefetch batches |
+| `src/model.py` | Build and compile the MobileNetV2 transfer-learning model |
+| `src/train.py` | Train the model, save the best checkpoint and training artifacts |
+| `src/evaluate.py` | Evaluate a saved model on the test split and save metrics and plots |
+| `src/predict.py` | Run inference on one image and print an educational-use notice |
+| `main.py` | Dispatch `train`, `evaluate`, and `predict` commands |
+
+---
+
+## Working Principle
+
+```text
+Obtain the dataset and verify its terms and split provenance
+                         ↓
+Keep train, validation, and test partitions intact
+                         ↓
+Decode images, map labels, and resize to 224×224 RGB
+                         ↓
+Augment training images and train the binary classifier
+                         ↓
+Select the checkpoint using validation AUC
+                         ↓
+Evaluate once on the held-out test data
+                         ↓
+Report metrics and optionally predict one image
+```
+
+### Dataset Layout
+
+Download the Kaggle **Chest X-Ray Images (Pneumonia)** dataset yourself and follow the dataset host's current terms. Arrange the files as described in [`data/README.md`](data/README.md):
+
+```text
+data/raw/chest_xray/
+├── train/
+│   ├── NORMAL/
+│   └── PNEUMONIA/
+├── val/
+│   ├── NORMAL/
+│   └── PNEUMONIA/
+└── test/
+    ├── NORMAL/
+    └── PNEUMONIA/
+```
+
+Record the dataset source, version, access date, terms, and class counts before training. Keep the supplied partitions intact; do not use the test split for training, checkpoint selection, or other development choices. Do not commit raw images or redistribute samples unless the applicable terms explicitly allow it.
+
+---
+
+## Model and Evaluation
+
+The model applies random rotation and zoom augmentation, MobileNetV2 preprocessing, a frozen ImageNet-pretrained MobileNetV2 base, global average pooling, dropout, and a one-unit sigmoid output. It is compiled with Adam, binary cross-entropy, binary accuracy, and AUC.
+
+Training uses the training split and validation split. The best checkpoint is selected by validation AUC, while early stopping monitors validation loss. Evaluation loads that saved checkpoint and evaluates the held-out test split at a fixed threshold of `0.5`.
+
+The evaluator writes:
+
+- Accuracy
+- Pneumonia sensitivity/recall
+- Normal specificity/recall
+- ROC AUC when both classes are represented
+- Confusion matrix and a classification report
+- A confusion-matrix plot and a small panel of test-set examples
+
+No benchmark result is included in this repository. Populate any results summary only after a real run, and record the dataset version, class counts, software versions, hardware, threshold, metrics, and failure examples. A result on one dataset is not evidence of clinical safety, calibration, or generalization.
+
+---
+
+## Software and Tools
+
+- **Language:** Python 3.10 or 3.11 recommended
+- **Deep learning:** TensorFlow / Keras
+- **Model:** MobileNetV2 with ImageNet weights
+- **Image processing:** Pillow and TensorFlow image utilities
+- **Numerical computing:** NumPy
+- **Metrics:** scikit-learn
+- **Plots:** Matplotlib
+- **Web interface:** Streamlit
+- **Version control:** Git
+
+The Streamlit app uses a native light theme configured in `.streamlit/config.toml` and the project identity assets in `images/`.
+
+---
+
+## Project Structure
 
 ```text
 AI-Powered-Medical-Image-Analysis/
-├── data/                 # Dataset instructions; raw data stays local
-├── docs/                 # Project plan and proof checklist
-├── images/               # Optional README screenshots/demo images
-├── models/               # Locally generated model (ignored by Git)
-├── notebooks/            # Optional exploration notebooks
-├── outputs/              # Metrics, training log, confusion matrix
-├── src/                  # Data, model, training, evaluation, inference
-├── main.py               # Convenience command dispatcher
-├── requirements.txt
-└── README.md
+├── data/
+│   └── README.md              # Dataset setup and split layout
+├── docs/
+│   └── project-plan.md        # Module map and reproducibility checklist
+├── images/                    # Optional shareable project assets
+│   ├── thorax_ai_logo.png     # Header and sidebar wordmark
+│   └── thorax_ai_icon.png     # App icon
+├── .streamlit/
+│   └── config.toml            # Clinical-research color and typography theme
+├── models/                    # Locally generated model; ignored by Git
+├── notebooks/                 # Optional exploration notebooks
+├── outputs/                   # Locally generated logs and plots
+├── app.py                     # Streamlit web interface
+├── src/
+│   ├── data.py
+│   ├── evaluate.py
+│   ├── model.py
+│   ├── predict.py
+│   └── train.py
+├── .gitignore
+├── main.py                    # Command dispatcher
+└── requirements.txt
 ```
 
-## F. Installation
+Generated files and raw data may not exist until you run the workflow. The project includes both a command-line workflow and a local Streamlit web interface; it does not provide live clinical integration.
 
-Use 64-bit Python 3.10 or 3.11 in a virtual environment. Install packages from `requirements.txt`. TensorFlow's current pip installation instructions support CPU use on native Windows; GPU support for newer TensorFlow on Windows is through WSL2, while native-Windows CUDA support ended after TensorFlow 2.10. Refer to the [official TensorFlow installation guide](https://www.tensorflow.org/install/pip) for current platform and Python compatibility.
+---
 
-### Windows PowerShell (CPU)
+## How to Run the Project
+
+### 1. Install dependencies
+
+Use 64-bit Python 3.10 or 3.11 in a virtual environment. TensorFlow package availability depends on the Python version and operating system; consult the [official TensorFlow installation guide](https://www.tensorflow.org/install/pip) if installation fails.
+
+**Windows PowerShell (CPU):**
 
 ```powershell
 py -3.11 -m venv .venv
@@ -76,9 +206,7 @@ python -m pip install -r requirements.txt
 python -c "import tensorflow as tf; print(tf.__version__)"
 ```
 
-If script activation is restricted, use `\.venv\Scripts\python.exe` directly for the pip and run commands.
-
-### macOS / Linux
+**macOS / Linux:**
 
 ```bash
 python3.11 -m venv .venv
@@ -88,107 +216,180 @@ python -m pip install -r requirements.txt
 python -c 'import tensorflow as tf; print(tf.__version__)'
 ```
 
-## Dataset
+### 2. Prepare the dataset
 
-Download the Kaggle **Chest X-Ray Images (Pneumonia)** dataset yourself and comply with its current host and dataset terms. Do not commit the images. Arrange it as described in [`data/README.md`](data/README.md). The code expects `train`, `val`, and `test` directories, each containing `NORMAL` and `PNEUMONIA` class folders. Confirm the source, version, split provenance, and allowed use before training. Do not re-mix or tune on the test split.
+Download and arrange the data using the layout above and the instructions in [`data/README.md`](data/README.md). Training downloads MobileNetV2 ImageNet weights on first use, so internet access is required unless those weights are already cached.
 
-This dataset is useful for a classroom simulation, not evidence of clinical performance. Dataset quality, split construction, duplicate/patient leakage, source artifacts, and population representativeness can affect results. Record what you verify and what remains unknown.
-
-## G. Run the project
-
-From the repository root with the environment active:
+### 3. Train
 
 ```bash
 python main.py train --epochs 8
+```
+
+Optional arguments include `--data` for the dataset root, `--epochs` for the maximum number of epochs, and `--output` for the checkpoint path. For example:
+
+```bash
+python main.py train --data data/raw/chest_xray --epochs 8 --output models/pneumonia_mobilenet.keras
+```
+
+### 4. Evaluate
+
+```bash
 python main.py evaluate
+```
+
+Use `--data` to select the dataset root and `--model` to select a saved checkpoint:
+
+```bash
+python main.py evaluate --data data/raw/chest_xray --model models/pneumonia_mobilenet.keras
+```
+
+### 5. Predict one image
+
+```bash
 python main.py predict path/to/example_xray.jpeg
 ```
 
-The equivalent module commands are `python -m src.train`, `python -m src.evaluate`, and `python -m src.predict path/to/image.jpeg`. Override data/model paths with `--data` and `--model`. `--help` shows command arguments. Training downloads pretrained MobileNetV2 weights on first run, so internet access is needed then. CPU training may take a while. Output file names are examples; actual metrics depend on the data, software, and hardware, so no accuracy is promised.
+Pass `--model` to use a non-default checkpoint. The output is a dataset-label prediction and model score—not a diagnosis or calibrated clinical probability.
 
-Generated artifacts:
-
-- `models/pneumonia_mobilenet.keras`: best validation-AUC checkpoint
-- `outputs/training_log.csv`: epoch-level loss/metrics
-- `outputs/training_curves.png`: training and validation accuracy/loss curves
-- `outputs/metrics.json`: test accuracy, sensitivity, specificity, AUC, threshold
-- `outputs/confusion_matrix.png`: held-out test confusion matrix
-- `outputs/prediction_examples.png`: actual and predicted labels for a small test batch
-
-The default threshold is 0.5 for a classroom baseline only. Do not present a threshold as clinically appropriate. For robust reporting include class counts, precision/recall, false negatives/positives, data split provenance, and limitations.
-
-## H. Virtual simulation workflow
-
-1. Obtain the public dataset and record its source, access date, terms, and folder counts.
-2. Keep the supplied train/validation/test partitions intact; inspect for obvious corruption and duplicates where feasible.
-3. Train only on the training split. Augmentation runs during training only.
-4. Use validation metrics for checkpoint selection and development choices.
-5. Evaluate once on the held-out test partition and preserve the confusion matrix and class-wise metrics.
-6. Run one or more representative sample images and label outputs clearly as model predictions.
-7. Discuss false negatives, false positives, imbalance, data leakage risk, bias, and why an actual clinician must not rely on this demo.
-
-This simulates a narrow software workflow with labeled images. It does not simulate a hospital, a doctor, a patient pathway, or real-world clinical validation.
-
-## I. Phased implementation plan
-
-| Phase | Work / why | Expected result and verification | Common mistake |
-|---|---|---|---|
-| 1 Setup | Create venv and install dependencies for isolated reproducibility | TensorFlow imports and version prints | Mixing global and venv packages |
-| 2 Data | Download terms-compliant dataset and place splits | Expected class folders/counts present | Committing images or mixing splits |
-| 3 Input prep | Decode, resize, map labels; augment training only | Batch shapes `(batch,224,224,3)` | Augmenting validation/test |
-| 4 Model | Load pretrained MobileNetV2 and add binary head | Model summary has one sigmoid output | Treating score as diagnosis |
-| 5 Training | Fit train split; select best validation AUC | Keras epoch log and saved checkpoint | Training on test data |
-| 6 Evaluation | Compute confusion matrix and class metrics on test | JSON and PNG appear in outputs | Reporting accuracy alone |
-| 7 Prediction | Run an individual image | Dataset-label result and score | Using private patient data |
-| 8 Visualization | Inspect metrics and representative errors | Readable plots and discussion | Cherry-picking only successes |
-| 9 GitHub | Commit source/docs, exclude data and large model | Clean, reproducible repository | Uploading restricted data/secrets |
-| 10 Final | Document limitations and reproducibility details | Portfolio-ready research demo | Claiming clinical readiness |
-
-## J. GitHub publishing
-
-Suggested repo name: `ai-medical-image-analysis`. Description: `Educational chest X-ray image classification demo using TensorFlow and MobileNetV2 transfer learning.` Topics: `computer-vision`, `medical-imaging`, `tensorflow`, `deep-learning`, `chest-xray`, `education`.
-
-Create an empty GitHub repository, then from this directory:
+### 6. Launch the web interface
 
 ```bash
-git init
-git add README.md .gitignore requirements.txt main.py src data docs images notebooks outputs
-git commit -m "Create medical image analysis project scaffold"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/ai-medical-image-analysis.git
-git push -u origin main
+python -m streamlit run app.py
 ```
 
-Use small commits that reflect completed work. Keep raw data, trained weights, personal information, and credentials out of Git. Put compact, non-identifying plots in `images/` only when the dataset terms allow redistribution; otherwise make plots locally and link to the generation instructions. A short screen recording should show commands and generated metrics, not imply clinical use.
+Streamlit prints a local URL (usually `http://localhost:8501`) to open in your browser. The app provides an image-upload demo, a held-out evaluation snapshot, and a project overview. It loads the locally saved model when an image is submitted. Keep the app local and only upload images you are authorized to process.
 
-## K. Results and responsible interpretation
+Run `python main.py --help`, or append `--help` to a subcommand, for available CLI arguments. Equivalent module commands are `python -m src.train`, `python -m src.evaluate`, and `python -m src.predict`.
 
-No result is included in advance. Populate this section after a real run with software versions, dataset version/split, class counts, hardware, threshold, test metrics, and observed failure modes. Do not fabricate performance or compare to clinicians. Explain that a retrospective benchmark result on one dataset does not establish safety or generalization to other hospitals, equipment, ages, or populations.
+---
 
-## L. Seven-day proof plan
+## Generated Outputs
 
-| Day | Commit idea | Proof to capture |
-|---|---|---|
-| 1 Setup | `Add project scaffold and environment instructions` | Python version, dependency install |
-| 2 Dataset | `Document public dataset setup and provenance` | Folder tree and class counts, no images if terms disallow |
-| 3 Preprocessing | `Add deterministic image loading pipeline` | Example resized batch dimensions |
-| 4 Model | `Add MobileNetV2 transfer-learning model` | Model summary and architecture diagram |
-| 5 Training | `Add training and checkpoint workflow` | Training log plot, training command |
-| 6 Evaluation | `Add held-out metrics and confusion matrix` | Metrics JSON and confusion matrix, include errors |
-| 7 Publish | `Document results and publish repository` | Clean GitHub page, README rendered, final demo |
+The default workflow writes:
 
-## M. Screenshots and demo assets
+- `models/pneumonia_mobilenet.keras` — trained model checkpoint
+- `outputs/training_log.csv` — epoch-level training and validation log
+- `outputs/training_curves.png` — training and validation accuracy/loss curves
+- `outputs/metrics.json` — held-out test metrics and threshold
+- `outputs/confusion_matrix.png` — held-out test confusion matrix
+- `outputs/prediction_examples.png` — actual and predicted labels for a small test batch
 
-Use descriptive names such as `dataset_folder_layout.png`, `training_curves.png`, `test_confusion_matrix.png`, `sample_prediction_demo.png`, and `github_repository_overview.png`. Store shareable README assets under `images/`; store generated metrics/plots under `outputs/`. Check dataset terms before redistributing even a single sample image. Do not include identifiable patient data. Add screenshots to this README only after generating them, and caption them with split/source and context.
+These outputs are generated locally and ignored by Git. Training on CPU can take time; runtime and results vary with data, software, and hardware.
 
-## Interview discussion prompts
+---
 
-- Why use transfer learning for a small dataset?
-- Why are sensitivity and specificity relevant alongside accuracy?
-- What does a false negative mean in this dataset-label task?
-- How could patient-level leakage inflate test metrics?
-- What additional validation would be required before any clinical use?
+## Testing
 
-## License and data
+An automated unit-test suite is not currently included. To check Python syntax without loading the TensorFlow runtime, run from the repository root:
 
-Choose and add a software license before inviting reuse. A software license does not grant rights to the dataset. Follow the image dataset's separate terms and cite its source in your own report.
+```bash
+python -m compileall main.py src
+```
+
+Functional validation requires the project dependencies and a correctly arranged dataset. After setup, exercise training, evaluation, and inference with the commands above; verify the generated outputs and record the environment and dataset provenance.
+
+---
+
+## Project Evidence and Reproducibility
+
+No screenshots, dataset, trained checkpoint, or run-specific metrics are included as evidence in this repository. After a genuine run, optionally add non-identifying screenshots or plots to `images/`, only when the dataset terms permit sharing. Keep raw X-rays and personal or patient-identifying data out of Git.
+
+Record the following in [`docs/project-plan.md`](docs/project-plan.md) or an accompanying report after running the project:
+
+- Dataset source/version, terms reviewed, and access date
+- Train/validation/test class counts and split provenance
+- Python and TensorFlow versions
+- Machine and accelerator
+- Command and training configuration
+- Evaluation threshold and test metrics
+- Error examples, limitations, and checks for leakage or duplicates
+
+Never invent results or present selected examples as representative evidence of clinical performance.
+
+---
+
+## Limitations and Responsible Use
+
+- This is a research/education example, not a medical device or diagnostic aid.
+- The public dataset's labels, provenance, split construction, and population representativeness may be limited or uncertain.
+- Patient overlap, duplicates, acquisition artifacts, and other leakage can inflate evaluation results.
+- A test result on one dataset may not generalize to other hospitals, devices, populations, or workflows.
+- The sigmoid output is not calibrated as a clinical probability.
+- A threshold of `0.5` is a classroom default, not a clinically justified operating point.
+- There is no external validation, prospective study, clinician workflow, regulatory review, or deployment security in this project.
+- Do not use private or identifiable patient data without appropriate authorization and safeguards.
+
+Any real clinical application would require substantial domain expertise, representative data, independent validation, calibration, subgroup and site-shift analysis, privacy and security controls, human-factors work, regulatory review, and prospective evaluation.
+
+---
+
+## Future Scope
+
+- Add explicit dataset inspection for corrupt files, class counts, and duplicate risks.
+- Improve reproducibility with recorded configuration, seeds, and environment details.
+- Add additional class-wise metrics and structured error analysis.
+- Investigate patient-level split provenance and external validation where appropriate data is available.
+- Compare carefully selected models and calibration methods for research purposes.
+- Add automated tests for data loading, preprocessing, and metric calculations.
+- Create a dashboard only if it can communicate limitations and uncertainty responsibly.
+
+---
+
+## Skills Demonstrated
+
+### Machine Learning and Computer Vision
+
+- Supervised binary image classification
+- Transfer learning with MobileNetV2
+- Training-only data augmentation
+- Validation-based checkpoint selection
+- Held-out evaluation and error analysis
+
+### Python Engineering
+
+- Modular command-line project structure
+- TensorFlow data input pipelines
+- Model training, saving, loading, and inference
+- Metrics and visualization
+- Reproducibility and dataset handling
+
+### Responsible Research Communication
+
+- Dataset provenance and split integrity
+- Sensitivity, specificity, and ROC AUC reporting
+- Clear distinction between model scores and clinical probabilities
+- Explicit limitations and non-clinical-use boundaries
+
+---
+
+## Documentation
+
+- [`data/README.md`](data/README.md) — dataset setup and directory layout
+- [`docs/project-plan.md`](docs/project-plan.md) — implementation map and reproducibility checklist
+
+---
+
+## Project Status
+
+The repository contains a functional training, evaluation, and single-image inference workflow. The dataset and trained model are user-provided/generated locally. No run-specific performance results are asserted here, and the project has not been clinically validated.
+
+---
+
+## Conclusion
+
+This project demonstrates how an image input pipeline, transfer-learning model, held-out evaluation, and command-line inference can be assembled into a small medical-imaging research exercise. It is intended to support learning and discussion—not clinical decisions.
+
+```text
+LABELED X-RAY FOLDERS
+        ↓
+INPUT PIPELINE
+        ↓
+MOBILENETV2 TRANSFER LEARNING
+        ↓
+VALIDATION-SELECTED CHECKPOINT
+        ↓
+HELD-OUT TEST EVALUATION
+        ↓
+EDUCATIONAL LABEL + MODEL SCORE
+```
