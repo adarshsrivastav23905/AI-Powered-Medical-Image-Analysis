@@ -1,10 +1,10 @@
 """Train and save the educational baseline model."""
 import argparse
 from pathlib import Path
-import matplotlib.pyplot as plt
 import tensorflow as tf
 from src.data import load_split
 from src.model import build_model
+from src.plotting import save_training_curves
 
 
 def main():
@@ -28,16 +28,7 @@ def main():
         tf.keras.callbacks.CSVLogger(output_dir / "training_log.csv"),
     ]
     history = model.fit(train_ds, validation_data=val_ds, epochs=args.epochs, callbacks=callbacks)
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-    for metric, axis in zip(("accuracy", "loss"), axes):
-        axis.plot(history.history[metric], label=f"train {metric}")
-        axis.plot(history.history[f"val_{metric}"], label=f"validation {metric}")
-        axis.set_xlabel("Epoch")
-        axis.set_title(metric.capitalize())
-        axis.legend()
-    fig.tight_layout()
-    fig.savefig("outputs/training_curves.png", dpi=160)
-    plt.close(fig)
+    save_training_curves(history.history, output_dir / "training_curves.png")
     print(f"Saved model to {args.output}")
 
 

@@ -35,17 +35,20 @@ st.markdown(
         margin-bottom: 0.5rem;
     }
     .thorax-title {
-        color: #edf5f6;
-        font-size: clamp(1.8rem, 3vw, 2.65rem);
+        background: linear-gradient(105deg, #f2fbfa 15%, #8ce6d7 88%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        font-size: clamp(2rem, 3.8vw, 3.15rem);
         font-weight: 700;
-        letter-spacing: -0.045em;
-        line-height: 1.08;
-        margin-bottom: 0.55rem;
+        letter-spacing: -0.055em;
+        line-height: 1.02;
+        margin-bottom: 0.7rem;
     }
     .thorax-subtitle {
         color: #a8bdc5;
-        font-size: 1rem;
-        line-height: 1.6;
+        font-size: 1.02rem;
+        line-height: 1.65;
         margin: 0;
         max-width: 700px;
     }
@@ -53,6 +56,9 @@ st.markdown(
     .thorax-title,
     .thorax-subtitle {
         overflow-wrap: anywhere;
+    }
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        border-color: rgba(77, 212, 192, 0.22);
     }
     </style>
     """,
@@ -66,7 +72,7 @@ with st.sidebar:
     else:
         st.badge("Model not trained", icon=":material/pending:", color="orange")
     st.markdown("### A focused research demo")
-    st.caption("MobileNetV2 · Chest X-ray image classification")
+    st.caption("MobileNetV2 · Image-classification research")
     st.markdown("**Research workflow**")
     st.markdown(
         ":material/upload_file: Upload an authorized image  \n"
@@ -77,7 +83,7 @@ with st.sidebar:
 
 with st.container(border=True):
     icon_column, title_column, badge_column = st.columns(
-        [0.12, 0.62, 0.26],
+        [0.12, 0.68, 0.20],
         vertical_alignment="center",
     )
     with icon_column:
@@ -87,15 +93,15 @@ with st.container(border=True):
             alt="Thorax AI medical imaging logo",
         )
     with title_column:
-        st.markdown('<div class="thorax-eyebrow">Medical imaging lab</div>', unsafe_allow_html=True)
-        st.markdown('<div class="thorax-title">Chest X-ray analysis</div>', unsafe_allow_html=True)
+        st.markdown('<div class="thorax-eyebrow">THORAX AI · IMAGING LAB</div>', unsafe_allow_html=True)
+        st.markdown('<div class="thorax-title">Imaging intelligence</div>', unsafe_allow_html=True)
         st.markdown(
-            '<p class="thorax-subtitle">A focused research prototype exploring '
-            'MobileNetV2 image classification.</p>',
+            '<p class="thorax-subtitle">A considered space for exploring medical image '
+            'classification through responsible, education-first AI.</p>',
             unsafe_allow_html=True,
         )
     with badge_column:
-        st.badge("Education", icon=":material/science:", color="blue")
+        st.badge("Research demo", icon=":material/science:", color="blue")
 
 st.warning(
     "Not a medical device. Never use outputs for diagnosis or care decisions. "
@@ -130,7 +136,11 @@ if section == "Image demo":
         "Add an authorized image to view a model output. Files are processed in memory "
         "by this local app and are not saved."
     )
-    left, right = st.columns([0.95, 1.05], gap="large")
+    left, right = st.columns(
+        2,
+        gap="medium",
+        vertical_alignment="top",
+    )
     with left:
         with st.container(border=True, height=350):
             st.subheader("Image input", icon=":material/upload_file:")
@@ -168,7 +178,7 @@ if section == "Image demo":
                             score = float(model.predict(batch, verbose=0)[0][0])
                         index = int(score >= 0.5)
                         st.badge(
-                            f"Dataset label · {CLASS_NAMES[index]}",
+                            f"Model prediction · {CLASS_NAMES[index]}",
                             icon=":material/analytics:",
                             color="blue",
                         )
@@ -220,19 +230,33 @@ elif section == "Model snapshot":
         st.info("No evaluation metrics found yet. Run `python main.py evaluate` after training.")
 
     if CONFUSION_PATH.is_file():
-        st.image(
-            str(CONFUSION_PATH),
-            caption="Confusion matrix from the held-out test split",
-            alt="Confusion matrix for NORMAL and PNEUMONIA labels",
-            width="stretch",
+        st.subheader("Error breakdown", icon=":material/grid_on:")
+        st.caption(
+            "Read rows as the dataset labels and columns as model labels. "
+            "Diagonal cells are matches; off-diagonal cells are errors."
         )
+        _, matrix_column, _ = st.columns([1, 3, 1])
+        with matrix_column:
+            st.image(
+                str(CONFUSION_PATH),
+                caption="Held-out test split · image counts at threshold 0.5",
+                alt="Confusion matrix for NORMAL and PNEUMONIA labels",
+                width=640,
+            )
     if CURVES_PATH.is_file():
-        st.image(
-            str(CURVES_PATH),
-            caption="Training and validation curves",
-            alt="Training and validation accuracy and loss by epoch",
-            width="stretch",
+        st.subheader("Training progress", icon=":material/show_chart:")
+        st.caption(
+            "Training and validation curves show how model fit changed by epoch. "
+            "A gap between the lines can indicate a difference in fit between the splits."
         )
+        _, curves_column, _ = st.columns([1, 4, 1])
+        with curves_column:
+            st.image(
+                str(CURVES_PATH),
+                caption="Accuracy and loss · validation is separate from the held-out test split",
+                alt="Training and validation accuracy and loss by epoch",
+                width=960,
+            )
 
 elif section == "About this project":
     st.subheader("Inside the research demo", icon=":material/biotech:")

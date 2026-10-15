@@ -5,9 +5,14 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import (accuracy_score, classification_report, confusion_matrix,
-                             ConfusionMatrixDisplay, roc_auc_score)
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    roc_auc_score,
+)
 from src.data import load_split
+from src.plotting import save_confusion_matrix
 
 
 def main():
@@ -34,11 +39,11 @@ def main():
     Path("outputs/metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     print(json.dumps(metrics, indent=2))
     print(classification_report(y_true, y_pred, target_names=["NORMAL", "PNEUMONIA"], zero_division=0))
-    ConfusionMatrixDisplay(cm, display_labels=["NORMAL", "PNEUMONIA"]).plot(cmap="Blues", values_format="d")
-    plt.title("Held-out test confusion matrix (educational demo)")
-    plt.tight_layout()
-    plt.savefig("outputs/confusion_matrix.png", dpi=160)
-    plt.close()
+    save_confusion_matrix(
+        cm,
+        ["NORMAL", "PNEUMONIA"],
+        "outputs/confusion_matrix.png",
+    )
 
     # Small qualitative panel: actual dataset label next to the model's thresholded output.
     images, labels = next(iter(ds))
@@ -46,16 +51,50 @@ def main():
     image_scores = model.predict(images[:count], verbose=0).reshape(-1)
     columns = 4
     rows = (count + columns - 1) // columns
-    fig, axes = plt.subplots(rows, columns, figsize=(12, 3 * rows), squeeze=False)
+    fig, axes = plt.subplots(
+        rows,
+        columns,
+        figsize=(12, 3.2 * rows),
+        squeeze=False,
+        facecolor="#08151D",
+    )
     for index, axis in enumerate(axes.flat):
         axis.axis("off")
+        axis.set_facecolor("#10232D")
         if index < count:
             actual = int(labels[index].numpy().reshape(-1)[0])
             predicted = int(image_scores[index] >= 0.5)
             axis.imshow(images[index].numpy().astype("uint8"), cmap="gray")
-            axis.set_title(f"Actual: {['NORMAL', 'PNEUMONIA'][actual]}\nPredicted: {['NORMAL', 'PNEUMONIA'][predicted]}")
-    fig.tight_layout()
-    fig.savefig("outputs/prediction_examples.png", dpi=160)
+            is_correct = actual == predicted
+            axis.set_title(
+                f"Dataset label: {['NORMAL', 'PNEUMONIA'][actual]}\n"
+                f"Model label: {['NORMAL', 'PNEUMONIA'][predicted]}",
+                color="#4DD4C0" if is_correct else "#E7BE72",
+                fontsize=10,
+                pad=8,
+            )
+    fig.suptitle(
+        "Held-out test examples",
+        color="#E8F0F3",
+        fontsize=17,
+        fontweight="bold",
+        y=0.99,
+    )
+    fig.text(
+        0.5,
+        0.015,
+        "Illustrative samples only; this panel is not a clinical assessment.",
+        ha="center",
+        color="#A8BDC5",
+        fontsize=9,
+    )
+    fig.tight_layout(rect=(0.02, 0.06, 0.98, 0.94))
+    fig.savefig(
+        "outputs/prediction_examples.png",
+        dpi=160,
+        facecolor=fig.get_facecolor(),
+        bbox_inches="tight",
+    )
     plt.close(fig)
 
 

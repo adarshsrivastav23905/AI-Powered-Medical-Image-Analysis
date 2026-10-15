@@ -80,6 +80,52 @@ This is a binary supervised image-classification pipeline. A `tf.data` input pip
 - Single-image prediction with an explicit educational-use notice
 - Generated model and result artifacts are excluded from Git by `.gitignore`
 
+## Screenshots
+
+The screenshots below document the app, project structure, README, tests, and CLI. Click any preview to open the full-size capture.
+
+> **Image-sharing notice:** Screenshots `06`–`09` contain chest X-ray samples. They are omitted from this public gallery; include or publish them only after confirming that the dataset's current terms permit redistribution of the images shown.
+
+<details>
+<summary>Application overview and model results</summary>
+
+<table>
+<tr>
+<td><a href="screenshots/01_thorax_ai_home.png"><img src="screenshots/01_thorax_ai_home.png" width="480" alt="Thorax AI home screen"></a><br><sub>01 · Branded home screen and research-use notice</sub></td>
+<td><a href="screenshots/02_model_metrics.png"><img src="screenshots/02_model_metrics.png" width="480" alt="Held-out model metrics"></a><br><sub>02 · Held-out metrics and low-specificity warning</sub></td>
+</tr>
+<tr>
+<td><a href="screenshots/03_confusion_matrix.png"><img src="screenshots/03_confusion_matrix.png" width="480" alt="Held-out confusion matrix"></a><br><sub>03 · Confusion matrix with labels and counts</sub></td>
+<td><a href="screenshots/04_training_curves.png"><img src="screenshots/04_training_curves.png" width="480" alt="Training and validation curves"></a><br><sub>04 · Training and validation curves</sub></td>
+</tr>
+<tr>
+<td><a href="screenshots/05_about_project.png"><img src="screenshots/05_about_project.png" width="480" alt="About the research demo"></a><br><sub>05 · Research-demo workflow and safety information</sub></td>
+<td><a href="screenshots/10_project_overview.png"><img src="screenshots/10_project_overview.png" width="480" alt="Project overview in the app"></a><br><sub>10 · Project overview and educational-use notice</sub></td>
+</tr>
+</table>
+
+</details>
+
+<details>
+<summary>Project and development evidence</summary>
+
+<table>
+<tr>
+<td><a href="screenshots/11_project_structure.png"><img src="screenshots/11_project_structure.png" width="480" alt="Project files in VS Code"></a><br><sub>11 · Project structure in VS Code</sub></td>
+<td><a href="screenshots/12_readme_overview.png"><img src="screenshots/12_readme_overview.png" width="480" alt="README project overview"></a><br><sub>12 · README overview and project scope</sub></td>
+</tr>
+<tr>
+<td><a href="screenshots/13_readme_workflow.png"><img src="screenshots/13_readme_workflow.png" width="480" alt="README workflow and main modules"></a><br><sub>13 · Main modules and workflow</sub></td>
+<td><a href="screenshots/14_tests_passed.png"><img src="screenshots/14_tests_passed.png" width="480" alt="Eight unit tests passing"></a><br><sub>14 · Test run: 8 tests passed</sub></td>
+</tr>
+<tr>
+<td><a href="screenshots/15_cli_workflow.png"><img src="screenshots/15_cli_workflow.png" width="480" alt="Dataset inspection CLI help"></a><br><sub>15 · Dataset-inspection command help</sub></td>
+<td></td>
+</tr>
+</table>
+
+</details>
+
 ---
 
 ## System Architecture
@@ -113,7 +159,8 @@ Global average pooling → dropout → sigmoid score
 | `src/train.py` | Train the model, save the best checkpoint and training artifacts |
 | `src/evaluate.py` | Evaluate a saved model on the test split and save metrics and plots |
 | `src/predict.py` | Run inference on one image and print an educational-use notice |
-| `main.py` | Dispatch `train`, `evaluate`, and `predict` commands |
+| `src/inspect_data.py` | Count valid/corrupt images by split and save a grayscale training preview |
+| `main.py` | Dispatch `inspect`, `train`, `evaluate`, and `predict` commands |
 
 ---
 
@@ -211,9 +258,11 @@ AI-Powered-Medical-Image-Analysis/
 ├── src/
 │   ├── data.py
 │   ├── evaluate.py
+│   ├── inspect_data.py
 │   ├── model.py
 │   ├── predict.py
 │   └── train.py
+├── tests/                     # Input pipeline and dataset-inspection tests
 ├── .gitignore
 ├── main.py                    # Command dispatcher
 └── requirements.txt
@@ -268,7 +317,19 @@ python -c 'import tensorflow as tf; print(tf.__version__)'
 
 Download and arrange the data using the layout above and the instructions in [`data/README.md`](data/README.md). Training downloads MobileNetV2 ImageNet weights on first use, so internet access is required unless those weights are already cached.
 
-### 3. Train
+### 3. Inspect the dataset
+
+```bash
+python main.py inspect
+```
+
+This checks all expected split/class folders, reports supported image counts and unreadable files, and writes a grayscale display preview to `outputs/dataset_preview.png`. The grayscale image is for visual inspection only; training and inference still use 224×224 RGB inputs. To change paths or preview size:
+
+```bash
+python main.py inspect --data data/raw/chest_xray --output outputs/dataset_preview.png --samples-per-class 4
+```
+
+### 4. Train
 
 ```bash
 python main.py train --epochs 8
@@ -280,7 +341,7 @@ Optional arguments include `--data` for the dataset root, `--epochs` for the max
 python main.py train --data data/raw/chest_xray --epochs 8 --output models/pneumonia_mobilenet.keras
 ```
 
-### 4. Evaluate
+### 5. Evaluate
 
 ```bash
 python main.py evaluate
@@ -292,7 +353,7 @@ Use `--data` to select the dataset root and `--model` to select a saved checkpoi
 python main.py evaluate --data data/raw/chest_xray --model models/pneumonia_mobilenet.keras
 ```
 
-### 5. Predict one image
+### 6. Predict one image
 
 ```bash
 python main.py predict path/to/example_xray.jpeg
@@ -300,7 +361,7 @@ python main.py predict path/to/example_xray.jpeg
 
 Pass `--model` to use a non-default checkpoint. The output is a dataset-label prediction and model score—not a diagnosis or calibrated clinical probability.
 
-### 6. Launch the web interface
+### 7. Launch the web interface
 
 ```bash
 python -m streamlit run app.py
@@ -308,7 +369,7 @@ python -m streamlit run app.py
 
 Streamlit prints a local URL (usually `http://localhost:8501`) to open in your browser. The app provides an image-upload demo, a held-out evaluation snapshot, and a project overview. It loads the locally saved model when an image is submitted. Keep the app local and only upload images you are authorized to process.
 
-Run `python main.py --help`, or append `--help` to a subcommand, for available CLI arguments. Equivalent module commands are `python -m src.train`, `python -m src.evaluate`, and `python -m src.predict`.
+Run `python main.py --help`, or append `--help` to a subcommand, for available CLI arguments. Equivalent module commands include `python -m src.inspect_data`, `python -m src.train`, `python -m src.evaluate`, and `python -m src.predict`.
 
 ---
 
@@ -319,11 +380,22 @@ The default workflow writes:
 - `models/pneumonia_mobilenet.keras` — trained model checkpoint
 - `outputs/training_log.csv` — epoch-level training and validation log
 - `outputs/training_curves.png` — training and validation accuracy/loss curves
+- `outputs/dataset_preview.png` — grayscale display preview from the training split
 - `outputs/metrics.json` — held-out test metrics and threshold
 - `outputs/confusion_matrix.png` — held-out test confusion matrix
 - `outputs/prediction_examples.png` — actual and predicted labels for a small test batch
 
 These outputs are generated locally and ignored by Git. Training on CPU can take time; runtime and results vary with data, software, and hardware.
+
+### How to explain the project visuals
+
+- **Training curves:** The teal line is training performance and the amber line is validation performance, plotted by epoch. In the recorded run, training accuracy rises while validation accuracy stays at 75%; the validation split contains only 16 images (8 per class), so these validation points are coarse and unstable. The increasing gap is a reason for caution, not proof of generalization.
+- **Confusion matrix:** Rows are dataset labels and columns are model labels. For the recorded test run, the cells are 92 correctly labeled `NORMAL`, 142 `NORMAL` images labeled `PNEUMONIA`, 6 `PNEUMONIA` images labeled `NORMAL`, and 384 correctly labeled `PNEUMONIA`. The large `NORMAL` false-positive count explains the low 39.3% specificity. The threshold is 0.5.
+- **Metric cards:** Accuracy is 76.3%, pneumonia sensitivity is 98.5%, normal specificity is 39.3%, and ROC AUC is 0.950 for the recorded held-out split. These results describe this dataset/run only; the score is not calibrated and no clinical conclusion follows.
+- **Prediction examples:** Each tile compares a dataset label with the model's thresholded label. Teal indicates a match and amber a mismatch; examples are illustrative, not a clinical assessment or representative sample.
+- **Dataset preview:** Images are displayed in grayscale to aid visual inspection. The classifier itself consumes RGB inputs; the preview does not indicate a separate grayscale preprocessing pipeline.
+
+The validation split is especially small and the test results show an uneven error profile. Present these limitations alongside any screenshot; do not describe the scores as diagnostic accuracy or claim that the system is ready to assist clinicians.
 
 ## Virtual Simulation Walkthrough
 
@@ -331,30 +403,37 @@ This project simulates a narrow machine-learning workflow using a public, labele
 
 1. Download the dataset under its current terms and place it in the documented folder structure.
 2. Verify train/validation/test class folders and record the dataset version, terms, and class counts.
-3. Train with `python main.py train --epochs 8`; inspect the training log and curves.
-4. Evaluate the saved checkpoint with `python main.py evaluate`; review sensitivity, specificity, AUC, and the confusion matrix.
-5. Run `python main.py predict path/to/authorized_xray.jpeg` or start the local Streamlit interface.
-6. Capture non-identifying screenshots of setup, training output, metrics, plots, and the UI. Do not share raw X-rays unless the dataset terms explicitly permit redistribution.
+3. Run `python main.py inspect` to review split counts, image readability, and the grayscale preview.
+4. Train with `python main.py train --epochs 8`; inspect the training log and curves.
+5. Evaluate the saved checkpoint with `python main.py evaluate`; review sensitivity, specificity, AUC, and the confusion matrix.
+6. Run `python main.py predict path/to/authorized_xray.jpeg` or start the local Streamlit interface.
+7. Capture non-identifying screenshots of setup, training output, metrics, plots, and the UI. Do not share raw X-rays unless the dataset terms explicitly permit redistribution.
 
-The class output is a dataset label prediction, not doctor assistance or a clinical probability.
+The displayed class is the model's thresholded prediction, not a verified dataset label, doctor assistance, or a clinical probability. An image's dataset label and model prediction can differ.
 
 ---
 
 ## Testing
 
-An automated unit-test suite is not currently included. To check Python syntax without loading the TensorFlow runtime, run from the repository root:
+Run the unit tests from the repository root:
 
-```bash
-python -m compileall main.py src
+```powershell
+python -m unittest discover -s tests -v
 ```
 
-Functional validation requires the project dependencies and a correctly arranged dataset. After setup, exercise training, evaluation, and inference with the commands above; verify the generated outputs and record the environment and dataset provenance.
+The tests cover image loading, stable class labels, dataset inspection, corrupt-image reporting, and preview generation. To check syntax separately:
+
+```bash
+python -m compileall main.py src tests
+```
+
+Training and held-out evaluation still require the public dataset and compatible project dependencies. After setup, run the documented commands and record the environment and dataset provenance.
 
 ---
 
 ## Project Evidence and Reproducibility
 
-No screenshots, dataset, trained checkpoint, or run-specific metrics are included as evidence in this repository. After a genuine run, optionally add non-identifying screenshots or plots to `images/`, only when the dataset terms permit sharing. Keep raw X-rays and personal or patient-identifying data out of Git.
+The screenshot gallery above documents the app and development workflow. Screenshots containing sample X-rays are not displayed in the gallery unless their redistribution is permitted by the dataset terms. Keep raw X-rays and personal or patient-identifying data out of Git.
 
 Record the following in [`docs/project-plan.md`](docs/project-plan.md) or an accompanying report after running the project:
 
@@ -373,11 +452,11 @@ Never invent results or present selected examples as representative evidence of 
 - [ ] Dataset source, version, terms, access date, and split class counts are recorded.
 - [ ] Python/TensorFlow versions, hardware, command, and training configuration are recorded.
 - [ ] Training curves, held-out metrics, confusion matrix, and error examples come from a real run.
-- [ ] Screenshots show the terminal and app without usernames, secrets, or identifiable patient information.
+- [ ] Public screenshots contain no secrets or identifiable patient information, and any dataset imagery is shared only when its terms permit redistribution.
 - [ ] README results agree with the saved artifacts and are explicitly described as dataset-specific.
 - [ ] A fresh clone can follow the setup and run instructions.
 
-Suggested evidence filenames: `setup-and-versions.png`, `training-curves.png`, `held-out-confusion-matrix.png`, `metrics-summary.png`, and `local-demo.png`. Keep optional shareable evidence in `images/proof/` only after checking permissions and removing identifying information. Do not add the source X-rays.
+The current screenshot files are in `screenshots/`. Keep optional shareable evidence there only after checking permissions and removing identifying information. Do not add source X-rays.
 
 ### Seven-day portfolio plan
 
